@@ -5,6 +5,14 @@ import { getInputs } from './inputs.js';
 /**
  * Compares the source and query strings based on specific fuzzy match criteria.
  *
+ * Uses several matching criteria to determine if the query partially or perfectly matches the source:
+ * 1. Start of string match
+ * 2. Middle or end of string match
+ * 3. Off by one character match
+ * 4. Source is a prefix of query
+ * 5. Two initial characters match with one off-by-one
+ * 6. Any part of the query appears in the source (min 2 chars)
+ *
  * @param {string} source - The source string to compare against.
  * @param {string} query - The query string to compare with the source.
  * @returns {string} - "perfect", "partial", or "none" based on the match.
@@ -38,6 +46,11 @@ export function compareStrings(source, query) {
   // Check Criterion 5 (Partial Match with Two Initial Characters Matching and One Off-by-One)
   if (criterion5(source, query)) {
     // console.log("Partial: Criterion 5");
+    return 'partial';
+  }
+  // Check Criterion 6 (Any Part of Query Appears in Source)
+  if (criterion6(source, query)) {
+    // console.log("Partial: Criterion 6");
     return 'partial';
   }
   // If none of the criteria are met
@@ -223,6 +236,33 @@ export function compareStrings(source, query) {
     }
 
     return true;
+  }
+
+  /**
+   * Criterion 6: Any Part of Query Appears in Source
+   *
+   * - **Conditions:**
+   *   - The query must have at least 2 consecutive characters.
+   *   - Those characters must appear somewhere in the source string.
+   *
+   * - **Examples:**
+   *   - Source: "W1ABC", Query: "ABC" => partial
+   *   - Source: "W1ABC", Query: "AB" => partial
+   *   - Source: "W1ABC", Query: "BC" => partial
+   *   - Source: "W1ABC", Query: "1A" => partial
+   *
+   * @param {string} source
+   * @param {string} query
+   * @returns {boolean}
+   */
+  function criterion6(source, query) {
+    // The query must have at least 2 characters to match
+    if (query.length < 2) {
+      return false;
+    }
+    
+    // Check if any part of the query appears in the source
+    return source.includes(query);
   }
 }
 
@@ -446,23 +486,40 @@ export function respondWithAllStations(stations, audioLock) {
 }
 
 /**
- * Adds new stations if the current count is below the maximum allowed.
+ * Adds new stations based on configuration parameters.
  *
  * Uses a weighted random selection to determine how many new stations to add,
  * logs details about each new station, updates the total active station count,
  * and returns the updated array.
  *
  * @param {Array<Object>} stations - Current list of stations.
- * @param {Object} inputs - Configuration object containing `maxStations`.
+ * @param {Object} inputs - Configuration object containing `maxStations` and `minStations`.
  * @returns {Array<Object>} The updated list of stations.
  */
 export function addStations(stations, inputs) {
+  // Get the mode configuration to check if we should apply minStations
+  const currentMode = inputs.mode;
+  const modeConfig = window.modeLogicConfig?.[currentMode];
+  const useMinStations = modeConfig?.showTuStep === true;
+  
   // If currentStations is empty, then add a weighted random between 1 and inputs.maxStations
   if (stations.length < inputs.maxStations) {
-    // Use weightedRandom to determine the number of stations to add
-    let numStations = weightedRandom(inputs.maxStations - stations.length);
-    console.log(`+ Adding ${numStations} stations...`);
-    for (let i = 0; i < numStations; i++) {
+    // Calculate how many stations to add
+    let numStationsToAdd = 0;
+    
+    if (useMinStations && stations.length < inputs.minStations) {
+      // For multi-station modes, ensure we meet the minimum required stations
+      numStationsToAdd = Math.min(
+        inputs.minStations - stations.length,  // Add at least enough to reach minStations
+        inputs.maxStations - stations.length   // But don't exceed maxStations
+      );
+    } else {
+      // Use weightedRandom to determine the number of stations to add
+      numStationsToAdd = weightedRandom(inputs.maxStations - stations.length);
+    }
+    
+    console.log(`+ Adding ${numStationsToAdd} stations...`);
+    for (let i = 0; i < numStationsToAdd; i++) {
       let callingStation = getCallingStation();
       printStation(callingStation);
       stations.push(callingStation);
@@ -531,7 +588,7 @@ export function addTableRow(
 }
 
 /**
- * Removes all rows from the specified table body.
+ * Removes all rows from the specified table body and hides the averages header.
  *
  * @param {string} tableName - The ID of the HTML table element.
  */
@@ -544,12 +601,17 @@ export function clearTable(tableName) {
   while (tableBody.firstChild) {
     tableBody.removeChild(tableBody.firstChild);
   }
+
+  // Hide the averages header
+  const averagesHeader = document.getElementById('averagesHeader');
+  if (averagesHeader) {
+    averagesHeader.style.display = 'none';
+  }
 }
 
 /**
- * Computes totals and averages for the current rows (excluding the very first row),
- * and inserts/updates a summary row at the bottom. If there are fewer than 2 data rows,
- * no summary row is shown.
+ * Computes totals and averages for the current rows and updates the averages header.
+ * If there are fewer than 1 data rows, the averages header is hidden.
  *
  * @param {string} tableName - The ID of the HTML table element.
  * @param {string|null} [extra=null] - Optional additional information to include in a fifth cell.
@@ -557,19 +619,14 @@ export function clearTable(tableName) {
 function updateSummaryRow(tableName, extra = null) {
   const table = document.getElementById(tableName);
   const tableBody = table.getElementsByTagName('tbody')[0];
-
-  // Remove any existing summary row
-  const existingSummary = document.getElementById(tableName + '-summary');
-  if (existingSummary) {
-    existingSummary.remove();
-  }
+  const averagesHeader = document.getElementById('averagesHeader');
 
   // Gather row data
   let rows = Array.from(tableBody.rows);
 
-  // If fewer than 2 rows, no summary row is meaningful
-  // (we can't compute averages if we skip the first row and end up with nothing)
-  if (rows.length < 2) {
+  // If no rows, hide the averages header
+  if (rows.length < 1) {
+    averagesHeader.style.display = 'none';
     return;
   }
 
@@ -628,18 +685,14 @@ function updateSummaryRow(tableName, extra = null) {
     finalWpm = avgWpm.toFixed(1).toString();
   }
 
-  // --- Insert the new summary row at the bottom
-  const summaryRow = tableBody.insertRow(-1);
-  summaryRow.id = tableName + '-summary';
+  // --- Update the averages header
+  document.getElementById('avgWpm').textContent = finalWpm;
+  document.getElementById('avgAttempts').textContent = avgAttempts.toFixed(1);
+  document.getElementById('avgTime').textContent = avgTime.toFixed(2);
+  document.getElementById('totalContacts').textContent = rowCount;
 
-  // Make everything in the summary row bold; add " total" to avgTime
-  summaryRow.insertCell(0).innerHTML = ``;
-  summaryRow.insertCell(1).innerHTML = `<strong>Avg</strong>`;
-  summaryRow.insertCell(2).innerHTML = `<strong>${finalWpm}</strong>`;
-  summaryRow.insertCell(3).innerHTML =
-    `<strong>${avgAttempts.toFixed(1)}</strong>`;
-  summaryRow.insertCell(4).innerHTML = `<strong>${avgTime.toFixed(2)}</strong>`;
-  summaryRow.insertCell(5).innerHTML = ``;
+  // Show the averages header
+  averagesHeader.style.display = 'block';
 }
 
 /**

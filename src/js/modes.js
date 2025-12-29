@@ -15,14 +15,74 @@ export const modeUIConfig = {
     resultsHeader: 'Single Mode Results',
   },
   contest: {
-    showTuButton: true,
-    showInfoField: true,
-    infoFieldPlaceholder: 'Serial Number',
+    showTuButton: false,
+    showInfoField: false,
+    infoFieldPlaceholder: '',
     showInfoField2: false,
     infoField2Placeholder: '',
-    tableExtraColumn: true,
-    extraColumnHeader: 'Serial Number',
+    tableExtraColumn: false,
+    extraColumnHeader: '',
     resultsHeader: 'Contest Mode Results',
+    contestConfig: {
+      allowedLetters: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      allowedNumbers: '0123456789',
+      minCallsignLength: 3,
+      maxCallsignLength: 6,
+      requirePrefix: true,
+      allowedPrefixes: [
+        // US prefixes (70% total)
+        { value: 'K', weight: 35 }, // 35%
+        { value: 'W', weight: 20 }, // 20%
+        { value: 'N', weight: 15 }, // 15%
+        
+        // AA-AL series (10% total)
+        { value: 'AA', weight: 1.5 }, // 1.5%
+        { value: 'AB', weight: 1.5 }, // 1.5%
+        { value: 'AC', weight: 1.5 }, // 1.5%
+        { value: 'AD', weight: 0.8 }, // 0.8%
+        { value: 'AE', weight: 0.8 }, // 0.8%
+        { value: 'AF', weight: 0.8 }, // 0.8%
+        { value: 'AG', weight: 0.8 }, // 0.8%
+        { value: 'AH', weight: 0.8 }, // 0.8%
+        { value: 'AI', weight: 0.8 }, // 0.8%
+        { value: 'AJ', weight: 0.8 }, // 0.8%
+        { value: 'AK', weight: 0.8 }, // 0.8%
+        { value: 'AL', weight: 0.8 }, // 0.8%
+
+        // Canadian prefixes (10% total)
+        { value: 'VE', weight: 5 }, // 5%
+        { value: 'VA', weight: 2.5 }, // 2.5%
+        { value: 'VO', weight: 2.5 }, // 2.5%
+
+        // Mexican prefixes (10% total)
+        { value: 'XA', weight: 0.4 }, // 0.4%
+        { value: 'XB', weight: 0.4 }, // 0.4%
+        { value: 'XC', weight: 0.4 }, // 0.4%
+        { value: 'XD', weight: 0.4 }, // 0.4%
+        { value: 'XE', weight: 0.4 }, // 0.4%
+        { value: 'XF', weight: 0.4 }, // 0.4%
+        { value: 'XG', weight: 0.4 }, // 0.4%
+        { value: 'XH', weight: 0.4 }, // 0.4%
+        { value: 'XI', weight: 0.4 }, // 0.4%
+        { value: 'XJ', weight: 0.4 }, // 0.4%
+        { value: 'XK', weight: 0.4 }, // 0.4%
+        { value: 'XL', weight: 0.4 }, // 0.4%
+        { value: 'XM', weight: 0.4 }, // 0.4%
+        { value: 'XN', weight: 0.4 }, // 0.4%
+        { value: 'XO', weight: 0.4 }, // 0.4%
+        { value: 'XP', weight: 0.4 }, // 0.4%
+        { value: 'XQ', weight: 0.4 }, // 0.4%
+        { value: 'XR', weight: 0.4 }, // 0.4%
+        { value: 'XS', weight: 0.4 }, // 0.4%
+        { value: 'XT', weight: 0.4 }, // 0.4%
+        { value: 'XU', weight: 0.4 }, // 0.4%
+        { value: 'XV', weight: 0.4 }, // 0.4%
+        { value: 'XW', weight: 0.4 }, // 0.4%
+        { value: 'XX', weight: 0.4 }, // 0.4%
+        { value: 'XY', weight: 0.4 }, // 0.4%
+        { value: 'XZ', weight: 0.4 }, // 0.4%
+      ],
+    }
   },
   pota: {
     showTuButton: true,
@@ -58,7 +118,7 @@ export const modeUIConfig = {
 
 /**
  * modeLogicConfig centralizes the message construction logic for various modes.
- * Each mode’s functions define how CQ calls, exchanges, and final messages are generated,
+ * Each mode's functions define how CQ calls, exchanges, and final messages are generated,
  * removing the need for conditional branching (e.g., if/else statements) elsewhere.
  * Instead of embedding placeholders, these functions use template literals and accept
  * the necessary parameters directly.
@@ -100,18 +160,16 @@ export const modeLogicConfig = {
   },
   contest: {
     cqMessage: (yourStation, theirStation, arbitrary) =>
-      `CQ TEST DE ${yourStation.callsign}`,
+      `W`,
     yourExchange: (yourStation, theirStation, arbitrary) => `5NN`,
-    theirExchange: (yourStation, theirStation, arbitrary) =>
-      `5NN ${theirStation.serialNumber} TU`,
-    yourSignoff: (yourStation, theirStation, arbitrary) =>
-      `TU ${yourStation.callsign}`,
+    theirExchange: (yourStation, theirStation, arbitrary) => `EE`,
+    yourSignoff: (yourStation, theirStation, arbitrary) => ``,
     theirSignoff: null,
-    requiresInfoField: true,
+    requiresInfoField: false,
     requiresInfoField2: false,
-    showTuStep: true,
+    showTuStep: false,
     modeName: 'Contest',
-    extraInfoFieldKey: 'serialNumber',
+    extraInfoFieldKey: null,
     extraInfoFieldKey2: null,
   },
   sst: {

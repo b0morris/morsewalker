@@ -9,23 +9,23 @@ import { getInputs } from './inputs.js';
 // https://github.com/sc0tfree/morsewalker/issues/29
 const US_CALLSIGN_PREFIXES_WEIGHTED = [
   // Large items
-  { value: 'K', weight: 40 }, // 40%
-  { value: 'W', weight: 25 }, // 25%
-  { value: 'N', weight: 20 }, // 20%
+  { value: 'K', weight: 45 }, // 45%
+  { value: 'W', weight: 30 }, // 30%
+  { value: 'N', weight: 15 }, // 15%
 
   // Smaller items
-  { value: 'AA', weight: 2 }, // 2%
-  { value: 'AB', weight: 2 }, // 2%
-  { value: 'AC', weight: 2 }, // 2%
-  { value: 'AD', weight: 1 }, // 1%
-  { value: 'AE', weight: 1 }, // 1%
-  { value: 'AF', weight: 1 }, // 1%
-  { value: 'AG', weight: 1 }, // 1%
-  { value: 'AH', weight: 1 }, // 1%
-  { value: 'AI', weight: 1 }, // 1%
-  { value: 'AJ', weight: 1 }, // 1%
-  { value: 'AK', weight: 1 }, // 1%
-  { value: 'AL', weight: 1 }, // 1%
+  { value: 'AA', weight: 1 }, // 1%
+  { value: 'AB', weight: 1 }, // 1%
+  { value: 'AC', weight: 1 }, // 1%
+  { value: 'AD', weight: 0.5 }, // 0.5%
+  { value: 'AE', weight: 0.5 }, // 0.5%
+  { value: 'AF', weight: 0.5 }, // 0.5%
+  { value: 'AG', weight: 0.5 }, // 0.5%
+  { value: 'AH', weight: 0.5 }, // 0.5%
+  { value: 'AI', weight: 0.5 }, // 0.5%
+  { value: 'AJ', weight: 0.5 }, // 0.5%
+  { value: 'AK', weight: 0.5 }, // 0.5%
+  { value: 'AL', weight: 0.5 }, // 0.5%
 ];
 
 const NON_US_CALLSIGN_PREFIXES = [
@@ -259,9 +259,105 @@ export function getCallingStation() {
   let inputs = getInputs();
   if (inputs === null) return;
 
-  // determine if it's a US station
+  // Determine if it's a US station (used in both contest and non-contest modes)
   let isUS = inputs.usOnly ? true : Math.random() < 0.4;
 
+  // If in contest mode, use contest configuration
+  if (inputs.mode === 'contest') {
+    const config = inputs.contestConfig;
+    let callsign = '';
+    
+    if (config.requirePrefix) {
+      if (isUS) {
+        // Use weighted random selection for US prefixes
+        const prefix = weightedRandomElement(US_CALLSIGN_PREFIXES_WEIGHTED);
+        if (!prefix) {
+          console.error('No prefix selected from weighted array, using fallback');
+          callsign += 'K'; // Fallback to K prefix
+        } else {
+          callsign += prefix;
+        }
+      } else {
+        // Use non-US prefixes
+        const prefix = randomElement(NON_US_CALLSIGN_PREFIXES);
+        if (!prefix) {
+          console.error('No prefix selected from non-US prefixes, using fallback');
+          callsign += 'VE'; // Fallback to VE prefix
+        } else {
+          callsign += prefix;
+        }
+      }
+    }
+    
+    // Add a random number
+    const number = randomElement(config.allowedNumbers);
+    if (!number) {
+      console.error('No number selected, using fallback');
+      callsign += '1'; // Fallback to 1
+    } else {
+      callsign += number;
+    }
+    
+    // Get the format to determine suffix length
+    const format = randomElement(inputs.formats);
+    if (!format) {
+      console.error('No format selected, using fallback');
+      callsign += 'AAA'; // Fallback to 3 letters
+    } else {
+      const suffixLength = parseInt(format.slice(-1));
+      // Add random letters from allowed letters to meet length requirements
+      for (let i = 0; i < suffixLength; i++) {
+        const letter = randomElement(config.allowedLetters);
+        if (!letter) {
+          console.error('No letter selected, using fallback');
+          callsign += 'A'; // Fallback to A
+        } else {
+          callsign += letter;
+        }
+      }
+    }
+    
+    // Add a slash with 1-2 characters based on configured percentage
+    if (Math.random() < config.slashPercentage / 100) {
+      callsign += '/';
+      const slashSuffixLength = Math.random() < 0.5 ? 1 : 2; // 50/50 chance of 1 or 2 characters
+      for (let i = 0; i < slashSuffixLength; i++) {
+        const letter = randomElement(config.allowedLetters);
+        if (!letter) {
+          console.error('No letter selected for slash suffix, using fallback');
+          callsign += 'A'; // Fallback to A
+        } else {
+          callsign += letter;
+        }
+      }
+    }
+    
+    return {
+      callsign,
+      wpm:
+        Math.floor(Math.random() * (inputs.maxSpeed - inputs.minSpeed + 1)) +
+        inputs.minSpeed,
+      enableFarnsworth: inputs.enableFarnsworth,
+      farnsworthSpeed: inputs.farnsworthSpeed || null,
+      volume:
+        Math.random() * (inputs.maxVolume - inputs.minVolume) + inputs.minVolume,
+      frequency: Math.floor(
+        Math.random() * (inputs.maxTone - inputs.minTone) + inputs.minTone
+      ),
+      name: randomElement(names),
+      state: isUS ? randomElement(stateAbbreviations) : '',
+      serialNumber: (Math.floor(Math.random() * 30) + 1)
+        .toString()
+        .padStart(2, '0'),
+      cwopsNumber: Math.floor(Math.random() * 4000) + 1,
+      player: null,
+      qsb: inputs.qsb ? Math.random() < inputs.qsbPercentage / 100 : false,
+      qsbFrequency: Math.random() * 0.45 + 0.05,
+      qsbDepth: Math.random() * 0.4 + 0.6,
+    };
+  }
+
+  // Default behavior for other modes
   return {
     callsign: isUS
       ? getRandomUSCallsign(inputs.formats)
@@ -284,9 +380,7 @@ export function getCallingStation() {
     cwopsNumber: Math.floor(Math.random() * 4000) + 1,
     player: null,
     qsb: inputs.qsb ? Math.random() < inputs.qsbPercentage / 100 : false,
-    // QSB frequency range: 0.05 to 0.5
     qsbFrequency: Math.random() * 0.45 + 0.05,
-    // QSB depth range: 0.6 to 1.0
     qsbDepth: Math.random() * 0.4 + 0.6,
   };
 }
@@ -305,7 +399,7 @@ function getRandomUSCallsign(formats) {
   const format = randomElement(formats);
   const number = randomDigit();
 
-  // If it’s a 1× format (1x1, 1x2, 1x3), we only want one-letter prefixes
+  // If it's a 1× format (1x1, 1x2, 1x3), we only want one-letter prefixes
   let possiblePrefixes;
   if (format.startsWith('1x')) {
     possiblePrefixes = US_CALLSIGN_PREFIXES_WEIGHTED.filter(
@@ -411,22 +505,40 @@ function randomElement(array) {
  * @returns {*} A random element's `value` from the array, based on the weights.
  */
 function weightedRandomElement(weightedArray) {
+  if (!weightedArray || !Array.isArray(weightedArray) || weightedArray.length === 0) {
+    console.error('Invalid weighted array:', weightedArray);
+    return null;
+  }
+
   // Sum all weights
-  const totalWeight = weightedArray.reduce((sum, item) => sum + item.weight, 0);
+  const totalWeight = weightedArray.reduce((sum, item) => {
+    if (!item || typeof item.weight !== 'number') {
+      console.error('Invalid item in weighted array:', item);
+      return sum;
+    }
+    return sum + item.weight;
+  }, 0);
+
+  if (totalWeight <= 0) {
+    console.error('Total weight is 0 or negative:', totalWeight);
+    return null;
+  }
 
   // Pick a random number between 0 and totalWeight
   let randomValue = Math.random() * totalWeight;
 
   // Determine which item is 'hit' by randomValue
+  let currentWeight = 0;
   for (const item of weightedArray) {
-    randomValue -= item.weight;
-    if (randomValue <= 0) {
+    currentWeight += item.weight;
+    if (randomValue <= currentWeight) {
       return item.value;
     }
   }
 
   // Fallback (should not happen if weights are set up correctly)
-  return null;
+  console.warn('No item selected, using fallback');
+  return weightedArray[0].value;
 }
 
 /**

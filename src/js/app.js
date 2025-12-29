@@ -33,6 +33,9 @@ import { getYourStation, getCallingStation } from './stationGenerator.js';
 import { updateStaticIntensity } from './audio.js';
 import { modeLogicConfig, modeUIConfig } from './modes.js';
 
+// Make modeLogicConfig accessible globally for other modules
+window.modeLogicConfig = modeLogicConfig;
+
 /**
  * Application state variables.
  *
@@ -94,6 +97,18 @@ document.addEventListener('DOMContentLoaded', () => {
   stopButton.addEventListener('click', stop);
   modeRadios.forEach((radio) => {
     radio.addEventListener('change', changeMode);
+  });
+
+  // Show/hide contest configuration when contest mode is selected
+  modeRadios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+      const contestConfig = document.getElementById('contestConfig');
+      if (radio.value === 'contest') {
+        contestConfig.style.display = 'block';
+      } else {
+        contestConfig.style.display = 'none';
+      }
+    });
   });
 
   // QSB
@@ -176,6 +191,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Enter') {
       event.preventDefault();
       sendButton.click();
+    } else if (event.key === ' ') {
+      event.preventDefault();
+      
+      // Check if program is currently running
+      const isRunning = currentStations.length > 0 || currentStation !== null;
+      
+      if (isRunning) {
+        // If running, stop the program
+        stop();
+      } else {
+        // If not running, start the program (CQ)
+        cq();
+      }
     }
   });
 
@@ -205,6 +233,47 @@ document.addEventListener('DOMContentLoaded', () => {
     yourSpeed: 'yourSpeed',
     yourSidetone: 'yourSidetone',
     yourVolume: 'yourVolume',
+    // Callsign format options
+    format1x1: 'format1x1',
+    format1x2: 'format1x2',
+    format1x3: 'format1x3',
+    format2x1: 'format2x1',
+    format2x2: 'format2x2',
+    format2x3: 'format2x3',
+    // Contest configuration
+    slashPercentage: 'slashPercentage',
+    allowedLetters: 'allowedLetters',
+    allowedNumbers: 'allowedNumbers',
+    minCallsignLength: 'minCallsignLength',
+    maxCallsignLength: 'maxCallsignLength',
+    requirePrefix: 'requirePrefix',
+    allowedPrefixes: 'allowedPrefixes',
+    // Responding station settings
+    maxStations: 'maxStations',
+    minStations: 'minStations',
+    minSpeed: 'minSpeed',
+    maxSpeed: 'maxSpeed',
+    minTone: 'minTone',
+    maxTone: 'maxTone',
+    minVolume: 'minVolume',
+    maxVolume: 'maxVolume',
+    minWait: 'minWait',
+    maxWait: 'maxWait',
+    enableFarnsworth: 'enableFarnsworth',
+    farnsworthSpeed: 'farnsworthSpeed',
+    usOnly: 'usOnly',
+    qrn: 'qrn',
+    qsb: 'qsb',
+    qsbPercentage: 'qsbPercentage',
+    enableCutNumbers: 'enableCutNumbers',
+    cutT: 'cutT',
+    cutA: 'cutA',
+    cutU: 'cutU',
+    cutV: 'cutV',
+    cutE: 'cutE',
+    cutG: 'cutG',
+    cutD: 'cutD',
+    cutN: 'cutN',
   };
 
   /**
@@ -222,6 +291,204 @@ document.addEventListener('DOMContentLoaded', () => {
   yourSidetone.value =
     localStorage.getItem(keys.yourSidetone) || yourSidetone.value;
   yourVolume.value = localStorage.getItem(keys.yourVolume) || yourVolume.value;
+
+  // Load responding station settings
+  const maxStations = document.getElementById('maxStations');
+  const minStations = document.getElementById('minStations');
+  const minSpeed = document.getElementById('minSpeed');
+  const maxSpeed = document.getElementById('maxSpeed');
+  const minTone = document.getElementById('minTone');
+  const maxTone = document.getElementById('maxTone');
+  const minVolume = document.getElementById('minVolume');
+  const maxVolume = document.getElementById('maxVolume');
+  const minWait = document.getElementById('minWait');
+  const maxWait = document.getElementById('maxWait');
+  const enableFarnsworth = document.getElementById('enableFarnsworth');
+  const farnsworthSpeed = document.getElementById('farnsworthSpeed');
+  const usOnly = document.getElementById('usOnly');
+  const qrnRadios = document.querySelectorAll('input[name="qrn"]');
+  const qsb = document.getElementById('qsb');
+  const enableCutNumbers = document.getElementById('enableCutNumbers');
+  const cutT = document.getElementById('cutT');
+  const cutA = document.getElementById('cutA');
+  const cutU = document.getElementById('cutU');
+  const cutV = document.getElementById('cutV');
+  const cutE = document.getElementById('cutE');
+  const cutG = document.getElementById('cutG');
+  const cutD = document.getElementById('cutD');
+  const cutN = document.getElementById('cutN');
+
+  // Load responding station values
+  if (maxStations) {
+    maxStations.value = localStorage.getItem(keys.maxStations) || maxStations.value;
+  }
+  if (minStations) {
+    minStations.value = localStorage.getItem(keys.minStations) || minStations.value;
+  }
+  if (minSpeed) {
+    minSpeed.value = localStorage.getItem(keys.minSpeed) || minSpeed.value;
+  }
+  if (maxSpeed) {
+    maxSpeed.value = localStorage.getItem(keys.maxSpeed) || maxSpeed.value;
+  }
+  if (minTone) {
+    minTone.value = localStorage.getItem(keys.minTone) || minTone.value;
+  }
+  if (maxTone) {
+    maxTone.value = localStorage.getItem(keys.maxTone) || maxTone.value;
+  }
+  if (minVolume) {
+    minVolume.value = localStorage.getItem(keys.minVolume) || minVolume.value;
+  }
+  if (maxVolume) {
+    maxVolume.value = localStorage.getItem(keys.maxVolume) || maxVolume.value;
+  }
+  if (minWait) {
+    minWait.value = localStorage.getItem(keys.minWait) || minWait.value;
+  }
+  if (maxWait) {
+    maxWait.value = localStorage.getItem(keys.maxWait) || maxWait.value;
+  }
+  if (enableFarnsworth) {
+    const savedEnableFarnsworth = localStorage.getItem(keys.enableFarnsworth);
+    enableFarnsworth.checked = savedEnableFarnsworth !== null ? savedEnableFarnsworth === 'true' : enableFarnsworth.checked;
+  }
+  if (farnsworthSpeed) {
+    farnsworthSpeed.value = localStorage.getItem(keys.farnsworthSpeed) || farnsworthSpeed.value;
+  }
+  if (usOnly) {
+    const savedUsOnly = localStorage.getItem(keys.usOnly);
+    usOnly.checked = savedUsOnly !== null ? savedUsOnly === 'true' : usOnly.checked;
+  }
+  if (qrnRadios.length > 0) {
+    const savedQrn = localStorage.getItem(keys.qrn);
+    if (savedQrn) {
+      const savedQrnRadio = document.querySelector(`input[name="qrn"][value="${savedQrn}"]`);
+      if (savedQrnRadio) {
+        savedQrnRadio.checked = true;
+      }
+    }
+  }
+  if (qsb) {
+    const savedQsb = localStorage.getItem(keys.qsb);
+    qsb.checked = savedQsb !== null ? savedQsb === 'true' : qsb.checked;
+  }
+  if (qsbPercentage) {
+    qsbPercentage.value = localStorage.getItem(keys.qsbPercentage) || qsbPercentage.value;
+  }
+  if (enableCutNumbers) {
+    const savedEnableCutNumbers = localStorage.getItem(keys.enableCutNumbers);
+    enableCutNumbers.checked = savedEnableCutNumbers !== null ? savedEnableCutNumbers === 'true' : enableCutNumbers.checked;
+  }
+  if (cutT) {
+    const savedCutT = localStorage.getItem(keys.cutT);
+    cutT.checked = savedCutT !== null ? savedCutT === 'true' : cutT.checked;
+  }
+  if (cutA) {
+    const savedCutA = localStorage.getItem(keys.cutA);
+    cutA.checked = savedCutA !== null ? savedCutA === 'true' : cutA.checked;
+  }
+  if (cutU) {
+    const savedCutU = localStorage.getItem(keys.cutU);
+    cutU.checked = savedCutU !== null ? savedCutU === 'true' : cutU.checked;
+  }
+  if (cutV) {
+    const savedCutV = localStorage.getItem(keys.cutV);
+    cutV.checked = savedCutV !== null ? savedCutV === 'true' : cutV.checked;
+  }
+  if (cutE) {
+    const savedCutE = localStorage.getItem(keys.cutE);
+    cutE.checked = savedCutE !== null ? savedCutE === 'true' : cutE.checked;
+  }
+  if (cutG) {
+    const savedCutG = localStorage.getItem(keys.cutG);
+    cutG.checked = savedCutG !== null ? savedCutG === 'true' : cutG.checked;
+  }
+  if (cutD) {
+    const savedCutD = localStorage.getItem(keys.cutD);
+    cutD.checked = savedCutD !== null ? savedCutD === 'true' : cutD.checked;
+  }
+  if (cutN) {
+    const savedCutN = localStorage.getItem(keys.cutN);
+    cutN.checked = savedCutN !== null ? savedCutN === 'true' : cutN.checked;
+  }
+
+  // Update UI state after loading saved values
+  // Update Farnsworth speed input state
+  if (enableFarnsworth && farnsworthSpeed) {
+    farnsworthSpeed.disabled = !enableFarnsworth.checked;
+  }
+  
+  // Update QSB percentage input state
+  if (qsb && qsbPercentage) {
+    qsbPercentage.disabled = !qsb.checked;
+  }
+  
+  // Update cut number checkboxes state
+  if (enableCutNumbers) {
+    const cutNumberIds = ['cutT', 'cutA', 'cutU', 'cutV', 'cutE', 'cutG', 'cutD', 'cutN'];
+    cutNumberIds.forEach((id) => {
+      const checkbox = document.getElementById(id);
+      if (checkbox) {
+        checkbox.disabled = !enableCutNumbers.checked;
+      }
+    });
+  }
+
+  // Load callsign format options
+  const format1x1 = document.getElementById('1x1');
+  const format1x2 = document.getElementById('1x2');
+  const format1x3 = document.getElementById('1x3');
+  const format2x1 = document.getElementById('2x1');
+  const format2x2 = document.getElementById('2x2');
+  const format2x3 = document.getElementById('2x3');
+  
+  // Load saved format preferences or use defaults
+  const saved1x1 = localStorage.getItem(keys.format1x1);
+  const saved1x2 = localStorage.getItem(keys.format1x2);
+  const saved1x3 = localStorage.getItem(keys.format1x3);
+  const saved2x1 = localStorage.getItem(keys.format2x1);
+  const saved2x2 = localStorage.getItem(keys.format2x2);
+  const saved2x3 = localStorage.getItem(keys.format2x3);
+  
+  format1x1.checked = saved1x1 !== null ? saved1x1 === 'true' : format1x1.checked;
+  format1x2.checked = saved1x2 !== null ? saved1x2 === 'true' : format1x2.checked;
+  format1x3.checked = saved1x3 !== null ? saved1x3 === 'true' : format1x3.checked;
+  format2x1.checked = saved2x1 !== null ? saved2x1 === 'true' : format2x1.checked;
+  format2x2.checked = saved2x2 !== null ? saved2x2 === 'true' : format2x2.checked;
+  format2x3.checked = saved2x3 !== null ? saved2x3 === 'true' : format2x3.checked;
+
+  // Load contest configuration
+  const slashPercentage = document.getElementById('slashPercentage');
+  const allowedLetters = document.getElementById('allowedLetters');
+  const allowedNumbers = document.getElementById('allowedNumbers');
+  const minCallsignLength = document.getElementById('minCallsignLength');
+  const maxCallsignLength = document.getElementById('maxCallsignLength');
+  const requirePrefix = document.getElementById('requirePrefix');
+  const allowedPrefixes = document.getElementById('allowedPrefixes');
+  
+  if (slashPercentage) {
+    slashPercentage.value = localStorage.getItem(keys.slashPercentage) || slashPercentage.value;
+  }
+  if (allowedLetters) {
+    allowedLetters.value = localStorage.getItem(keys.allowedLetters) || allowedLetters.value;
+  }
+  if (allowedNumbers) {
+    allowedNumbers.value = localStorage.getItem(keys.allowedNumbers) || allowedNumbers.value;
+  }
+  if (minCallsignLength) {
+    minCallsignLength.value = localStorage.getItem(keys.minCallsignLength) || minCallsignLength.value;
+  }
+  if (maxCallsignLength) {
+    maxCallsignLength.value = localStorage.getItem(keys.maxCallsignLength) || maxCallsignLength.value;
+  }
+  if (requirePrefix) {
+    const savedRequirePrefix = localStorage.getItem(keys.requirePrefix);
+    requirePrefix.checked = savedRequirePrefix !== null ? savedRequirePrefix === 'true' : requirePrefix.checked;
+  }
+  if (allowedPrefixes) {
+    allowedPrefixes.value = localStorage.getItem(keys.allowedPrefixes) || allowedPrefixes.value;
+  }
 
   // Save user settings to localStorage on input change
   yourCallsign.addEventListener('input', () => {
@@ -244,6 +511,192 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem(keys.yourVolume, yourVolume.value);
   });
 
+  // Save responding station settings to localStorage on change
+  if (maxStations) {
+    maxStations.addEventListener('input', () => {
+      localStorage.setItem(keys.maxStations, maxStations.value);
+    });
+  }
+  if (minStations) {
+    minStations.addEventListener('input', () => {
+      localStorage.setItem(keys.minStations, minStations.value);
+    });
+  }
+  if (minSpeed) {
+    minSpeed.addEventListener('input', () => {
+      localStorage.setItem(keys.minSpeed, minSpeed.value);
+    });
+  }
+  if (maxSpeed) {
+    maxSpeed.addEventListener('input', () => {
+      localStorage.setItem(keys.maxSpeed, maxSpeed.value);
+    });
+  }
+  if (minTone) {
+    minTone.addEventListener('input', () => {
+      localStorage.setItem(keys.minTone, minTone.value);
+    });
+  }
+  if (maxTone) {
+    maxTone.addEventListener('input', () => {
+      localStorage.setItem(keys.maxTone, maxTone.value);
+    });
+  }
+  if (minVolume) {
+    minVolume.addEventListener('input', () => {
+      localStorage.setItem(keys.minVolume, minVolume.value);
+    });
+  }
+  if (maxVolume) {
+    maxVolume.addEventListener('input', () => {
+      localStorage.setItem(keys.maxVolume, maxVolume.value);
+    });
+  }
+  if (minWait) {
+    minWait.addEventListener('input', () => {
+      localStorage.setItem(keys.minWait, minWait.value);
+    });
+  }
+  if (maxWait) {
+    maxWait.addEventListener('input', () => {
+      localStorage.setItem(keys.maxWait, maxWait.value);
+    });
+  }
+  if (enableFarnsworth) {
+    enableFarnsworth.addEventListener('change', () => {
+      localStorage.setItem(keys.enableFarnsworth, enableFarnsworth.checked);
+    });
+  }
+  if (farnsworthSpeed) {
+    farnsworthSpeed.addEventListener('input', () => {
+      localStorage.setItem(keys.farnsworthSpeed, farnsworthSpeed.value);
+    });
+  }
+  if (usOnly) {
+    usOnly.addEventListener('change', () => {
+      localStorage.setItem(keys.usOnly, usOnly.checked);
+    });
+  }
+  if (qrnRadios.length > 0) {
+    qrnRadios.forEach((radio) => {
+      radio.addEventListener('change', () => {
+        localStorage.setItem(keys.qrn, radio.value);
+      });
+    });
+  }
+  if (qsb) {
+    qsb.addEventListener('change', () => {
+      localStorage.setItem(keys.qsb, qsb.checked);
+    });
+  }
+  if (qsbPercentage) {
+    qsbPercentage.addEventListener('input', () => {
+      localStorage.setItem(keys.qsbPercentage, qsbPercentage.value);
+    });
+  }
+  if (enableCutNumbers) {
+    enableCutNumbers.addEventListener('change', () => {
+      localStorage.setItem(keys.enableCutNumbers, enableCutNumbers.checked);
+    });
+  }
+  if (cutT) {
+    cutT.addEventListener('change', () => {
+      localStorage.setItem(keys.cutT, cutT.checked);
+    });
+  }
+  if (cutA) {
+    cutA.addEventListener('change', () => {
+      localStorage.setItem(keys.cutA, cutA.checked);
+    });
+  }
+  if (cutU) {
+    cutU.addEventListener('change', () => {
+      localStorage.setItem(keys.cutU, cutU.checked);
+    });
+  }
+  if (cutV) {
+    cutV.addEventListener('change', () => {
+      localStorage.setItem(keys.cutV, cutV.checked);
+    });
+  }
+  if (cutE) {
+    cutE.addEventListener('change', () => {
+      localStorage.setItem(keys.cutE, cutE.checked);
+    });
+  }
+  if (cutG) {
+    cutG.addEventListener('change', () => {
+      localStorage.setItem(keys.cutG, cutG.checked);
+    });
+  }
+  if (cutD) {
+    cutD.addEventListener('change', () => {
+      localStorage.setItem(keys.cutD, cutD.checked);
+    });
+  }
+  if (cutN) {
+    cutN.addEventListener('change', () => {
+      localStorage.setItem(keys.cutN, cutN.checked);
+    });
+  }
+
+  // Save callsign format options to localStorage on change
+  format1x1.addEventListener('change', () => {
+    localStorage.setItem(keys.format1x1, format1x1.checked);
+  });
+  format1x2.addEventListener('change', () => {
+    localStorage.setItem(keys.format1x2, format1x2.checked);
+  });
+  format1x3.addEventListener('change', () => {
+    localStorage.setItem(keys.format1x3, format1x3.checked);
+  });
+  format2x1.addEventListener('change', () => {
+    localStorage.setItem(keys.format2x1, format2x1.checked);
+  });
+  format2x2.addEventListener('change', () => {
+    localStorage.setItem(keys.format2x2, format2x2.checked);
+  });
+  format2x3.addEventListener('change', () => {
+    localStorage.setItem(keys.format2x3, format2x3.checked);
+  });
+
+  // Save contest configuration to localStorage on change
+  if (slashPercentage) {
+    slashPercentage.addEventListener('input', () => {
+      localStorage.setItem(keys.slashPercentage, slashPercentage.value);
+    });
+  }
+  if (allowedLetters) {
+    allowedLetters.addEventListener('input', () => {
+      localStorage.setItem(keys.allowedLetters, allowedLetters.value);
+    });
+  }
+  if (allowedNumbers) {
+    allowedNumbers.addEventListener('input', () => {
+      localStorage.setItem(keys.allowedNumbers, allowedNumbers.value);
+    });
+  }
+  if (minCallsignLength) {
+    minCallsignLength.addEventListener('input', () => {
+      localStorage.setItem(keys.minCallsignLength, minCallsignLength.value);
+    });
+  }
+  if (maxCallsignLength) {
+    maxCallsignLength.addEventListener('input', () => {
+      localStorage.setItem(keys.maxCallsignLength, maxCallsignLength.value);
+    });
+  }
+  if (requirePrefix) {
+    requirePrefix.addEventListener('change', () => {
+      localStorage.setItem(keys.requirePrefix, requirePrefix.checked);
+    });
+  }
+  if (allowedPrefixes) {
+    allowedPrefixes.addEventListener('input', () => {
+      localStorage.setItem(keys.allowedPrefixes, allowedPrefixes.value);
+    });
+  }
+
   // Handle QRN intensity changes
   const qrnRadioButtons = document.querySelectorAll('input[name="qrn"]');
   qrnRadioButtons.forEach((radio) => {
@@ -262,6 +715,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set currentMode to the saved or default mode
   currentMode = savedMode;
+
+  // Set initial visibility of contest configuration div based on saved mode
+  const contestConfig = document.getElementById('contestConfig');
+  if (savedMode === 'contest') {
+    contestConfig.style.display = 'block';
+  } else {
+    contestConfig.style.display = 'none';
+  }
 
   // Update basic stats on page load
   if (yourCallsign.value !== '') {
@@ -404,7 +865,7 @@ function cq() {
   const modeConfig = getModeConfig();
   const cqButton = document.getElementById('cqButton');
 
-  if (!modeConfig.showTuStep && currentStation !== null) {
+  if (currentMode !== 'contest' && !modeConfig.showTuStep && currentStation !== null) {
     return;
   }
 
@@ -427,9 +888,24 @@ function cq() {
   );
   updateAudioLock(yourResponseTimer);
 
-  if (modeConfig.showTuStep) {
+  if (modeConfig.showTuStep || currentMode === 'contest') {
     // Contest-like modes: CQ adds more stations
-    addStations(currentStations, inputs);
+    
+    // Ensure we have at least inputs.minStations if the mode supports it
+    if (currentStations.length === 0 && inputs.minStations > 0) {
+      // Add exactly inputs.minStations for initial call
+      for (let i = 0; i < inputs.minStations; i++) {
+        let callingStation = getCallingStation();
+        printStation(callingStation);
+        currentStations.push(callingStation);
+      }
+      console.log(`+ Added ${inputs.minStations} initial stations...`);
+      updateActiveStations(currentStations.length);
+    } else {
+      // Normal behavior for subsequent calls
+      addStations(currentStations, inputs);
+    }
+    
     respondWithAllStations(currentStations, yourResponseTimer);
     lastRespondingStations = currentStations;
   } else {
@@ -466,8 +942,141 @@ function send() {
 
   console.log(`--> Sending "${responseFieldText}"`);
 
-  if (modeConfig.showTuStep) {
-    // Multi-station scenario
+  if (currentMode === 'contest') {
+    // Contest mode - simplified behavior similar to single mode but with multiple stations
+    if (currentStations.length === 0) return;
+
+    let yourResponseTimer = yourStation.player.playSentence(responseFieldText);
+    updateAudioLock(yourResponseTimer);
+
+    // Handling repeats
+    if (
+      responseFieldText === '?' ||
+      responseFieldText === 'AGN' ||
+      responseFieldText === 'AGN?'
+    ) {
+      respondWithAllStations(currentStations, yourResponseTimer);
+      lastRespondingStations = currentStations;
+      currentStationAttempts++;
+      return;
+    }
+
+    // Handle QRS
+    if (responseFieldText === 'QRS') {
+      // For each lastRespondingStations,
+      // if Farensworth is already enabled, lower it by farnsworthLowerBy, but not less than 5
+      lastRespondingStations.forEach((stn) => {
+        if (stn.enableFarnsworth) {
+          stn.farnsworthSpeed = Math.max(
+            5,
+            stn.farnsworthSpeed - farnsworthLowerBy
+          );
+        } else {
+          stn.enableFarnsworth = true;
+          stn.farnsworthSpeed = stn.wpm - farnsworthLowerBy;
+        }
+      });
+
+      respondWithAllStations(lastRespondingStations, yourResponseTimer);
+      currentStationAttempts++;
+      return;
+    }
+
+    let results = currentStations.map((stn) =>
+      compareStrings(stn.callsign, responseFieldText.replace('?', ''))
+    );
+    let hasQuestionMark = responseFieldText.includes('?');
+
+    if (results.includes('perfect')) {
+      let matchIndex = results.indexOf('perfect');
+      if (hasQuestionMark) {
+        // Perfect match but user unsure
+        let theirResponseTimer = currentStations[
+          matchIndex
+        ].player.playSentence('RR', yourResponseTimer + 0.25);
+        updateAudioLock(theirResponseTimer);
+        currentStationAttempts++;
+        return;
+      } else {
+        // Perfect confirmed match - in contest mode, just reply with 'E'
+        let currentStation = currentStations[matchIndex];
+        let theirResponseTimer = currentStation.player.playSentence(
+          'E',
+          yourResponseTimer + 0.5
+        );
+        updateAudioLock(theirResponseTimer);
+        
+        // Log the contact
+        totalContacts++;
+        const wpmString =
+          `${currentStation.wpm}` +
+          (currentStation.enableFarnsworth
+            ? ` / ${currentStation.farnsworthSpeed}`
+            : '');
+        
+        addTableRow(
+          'resultsTable',
+          totalContacts,
+          currentStation.callsign,
+          wpmString,
+          currentStationAttempts,
+          audioContext.currentTime - currentStationStartTime,
+          '' // No additional info in contest mode
+        );
+        
+        // Remove the worked station and reset counters
+        currentStations.splice(matchIndex, 1);
+        currentStationAttempts = 0;
+        updateActiveStations(currentStations.length);
+        
+        // Ensure we have at least inputs.minStations active stations
+        if (currentStations.length < inputs.minStations) {
+          const stationsNeeded = inputs.minStations - currentStations.length;
+          console.log(`+ Adding ${stationsNeeded} stations to maintain minimum...`);
+          for (let i = 0; i < stationsNeeded; i++) {
+            let callingStation = getCallingStation();
+            printStation(callingStation);
+            currentStations.push(callingStation);
+          }
+          updateActiveStations(currentStations.length);
+        }
+        // Additional chance of a new station joining beyond the minimum
+        else if (Math.random() < 0.4) {
+          addStations(currentStations, inputs);
+        }
+        
+        // Respond with all remaining stations
+        respondWithAllStations(currentStations, theirResponseTimer);
+        lastRespondingStations = currentStations;
+        currentStationStartTime = audioContext.currentTime;
+        document.getElementById('responseField').value = '';
+        document.getElementById('responseField').focus();
+        return;
+      }
+    }
+
+    if (results.includes('partial')) {
+      // Partial matches: repeat them
+      let partialMatchStations = currentStations.filter(
+        (_, index) => results[index] === 'partial'
+      );
+      respondWithAllStations(partialMatchStations, yourResponseTimer);
+      lastRespondingStations = partialMatchStations;
+      currentStationAttempts++;
+      return;
+    }
+
+    // No matches at all
+    if (currentMode === 'contest') {
+      // In contest mode, stations always respond even with no match
+      respondWithAllStations(currentStations, yourResponseTimer);
+      lastRespondingStations = currentStations;
+      currentStationAttempts++;
+      return;
+    }
+    currentStationAttempts++;
+  } else if (modeConfig.showTuStep) {
+    // Multi-station scenario with TU step
     if (currentStations.length === 0) return;
 
     let yourResponseTimer = yourStation.player.playSentence(responseFieldText);
@@ -586,6 +1195,13 @@ function send() {
     }
 
     // No matches at all
+    if (currentMode === 'contest') {
+      // In contest mode, stations always respond even with no match
+      respondWithAllStations(currentStations, yourResponseTimer);
+      lastRespondingStations = currentStations;
+      currentStationAttempts++;
+      return;
+    }
     currentStationAttempts++;
   } else {
     // Single mode
@@ -830,8 +1446,19 @@ function tu() {
   infoField2.value = '';
   responseField.focus();
 
-  // Chance of a new station joining
-  if (Math.random() < 0.4) {
+  // Ensure we have at least inputs.minStations active stations
+  if (modeConfig.showTuStep && currentStations.length < inputs.minStations) {
+    const stationsNeeded = inputs.minStations - currentStations.length;
+    console.log(`+ Adding ${stationsNeeded} stations to maintain minimum...`);
+    for (let i = 0; i < stationsNeeded; i++) {
+      let callingStation = getCallingStation();
+      printStation(callingStation);
+      currentStations.push(callingStation);
+    }
+    updateActiveStations(currentStations.length);
+  }
+  // Additional chance of a new station joining beyond the minimum
+  else if (Math.random() < 0.4) {
     addStations(currentStations, inputs);
   }
 
@@ -933,23 +1560,25 @@ function nextSingleStation(responseStartTime) {
 }
 
 /**
- * Stops all audio playback and resets the CQ button.
+ * Stops all audio playback and resets run state so space toggles reliably.
  *
- * Clears the game state for single mode, ensuring no active station remains.
- * Leaves multi-station mode state untouched.
+ * Clears any active station(s) across all modes, re-enables the CQ button,
+ * and updates the active stations indicator. Does not clear results/history.
  */
 function stop() {
   stopAllAudio();
   const cqButton = document.getElementById('cqButton');
   cqButton.disabled = false;
 
-  // If the mode is single, reset the current station as well
-  if (currentMode === 'single') {
-    currentStation = null;
-    currentStationAttempts = 0;
-    currentStationStartTime = null;
-    updateActiveStations(0);
-  }
+  // Clear running state for both single and multi-station modes so toggle works
+  currentStation = null;
+  currentStationAttempts = 0;
+  currentStationStartTime = null;
+  currentStations = [];
+  activeStationIndex = null;
+  readyForTU = false;
+  lastRespondingStations = null;
+  updateActiveStations(0);
 }
 
 /**

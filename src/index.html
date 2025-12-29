@@ -89,22 +89,6 @@
         </h1>
         <p class="fw-bold fst-italic">Walk before you run!</p>
       </div>
-      <div class="alert alert-dismissible alert-danger" style="max-width: 35em">
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="alert"
-        ></button>
-        Morse Walker is currently in <strong>beta</strong> and
-        <i>your feedback is invaluable!</i><br />
-        <a
-          href="https://github.com/sc0tfree/morsewalker/issues/new/choose"
-          class="alert-link"
-          >Submit an issue</a
-        >
-        for bugs or feature requests, or
-        <a href="mailto:henry@w6nyc.com" class="alert-link">email me</a>.
-      </div>
     </div>
 
     <hr />
@@ -361,6 +345,26 @@
                   />
                 </div>
 
+                <!-- Min Stations -->
+                <div class="col-12 col-md-4 col-lg">
+                  <label for="minStations" class="form-label"
+                    ><span class="badge bg-success me-2">NEW!</span>Minimum Stations</label
+                  >
+                  <input
+                    type="number"
+                    id="minStations"
+                    name="minStations"
+                    class="form-control"
+                    value="1"
+                    min="1"
+                    max="100"
+                    step="1"
+                    required
+                    title="Guarantees at least this many stations are active in multi-station modes (contest, POTA, etc.)"
+                  />
+                  <div class="invalid-feedback"></div>
+                </div>
+
                 <!-- Min Speed -->
                 <div class="col-12 col-md-4 col-lg">
                   <label for="minSpeed" class="form-label">Min Speed</label>
@@ -557,6 +561,62 @@
                     <i class="fa-solid fa-circle-check me-2"></i>US Only
                     Callsigns
                   </label>
+                </div>
+
+                <!-- Contest Mode Configuration -->
+                <div id="contestConfig" class="col-12 mt-3" style="display: none;">
+                  <div class="card border-primary">
+                    <div class="card-header">
+                      <h5 class="mb-0">Contest Mode Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                          <label for="allowedLetters" class="form-label">Allowed Letters</label>
+                          <input type="text" class="form-control" id="allowedLetters" 
+                                 value="ABCDEFGHIJKLMNOPQRSTUVWXYZ" hardMode="BDEHILSVUT" 
+                                 placeholder="Enter allowed letters (e.g. ABCDEF)">
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="allowedNumbers" class="form-label">Allowed Numbers</label>
+                          <input type="text" class="form-control" id="allowedNumbers" 
+                                 value="0123456789" 
+                                 placeholder="Enter allowed numbers (e.g. 0123456789)">
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="minCallsignLength" class="form-label">Minimum Callsign Length</label>
+                          <input type="number" class="form-control" id="minCallsignLength" 
+                                 value="3" min="2" max="10">
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="maxCallsignLength" class="form-label">Maximum Callsign Length</label>
+                          <input type="number" class="form-control" id="maxCallsignLength" 
+                                 value="6" min="2" max="10">
+                        </div>
+                        <div class="col-12">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="requirePrefix" checked>
+                            <label class="form-check-label" for="requirePrefix">
+                              Require Prefix (K, W, N, etc.)
+                            </label>
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <label for="allowedPrefixes" class="form-label">Allowed Prefixes (comma-separated)</label>
+                          <input type="text" class="form-control" id="allowedPrefixes" 
+                                 value="K,W,N,AA,AB,AC,AD,AE,AF,AG,AH,AI,AJ,AK,AL"
+                                 placeholder="Enter allowed prefixes (e.g. K,W,N)">
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="slashPercentage" class="form-label">Slash Suffix Percentage</label>
+                          <input type="number" class="form-control" id="slashPercentage" 
+                                 value="30" min="0" max="100" step="1"
+                                 placeholder="Percentage of callsigns with slash suffix">
+                          <div class="form-text">Percentage of time a slash suffix (e.g., /QRP, /M) is added to callsigns</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Callsign Format Options -->
@@ -1077,7 +1137,7 @@
                   </div>
                   <div class="card-body">
                     <p class="card-text">
-                      Enter the callsign of the station you’d like to work.
+                      Enter the callsign of the station you'd like to work.
                     </p>
                     <ul>
                       <li class="mb-3">
@@ -1112,7 +1172,7 @@
                   </div>
                   <div class="card-body">
                     <p class="card-text">
-                      Click "Send" to transmit whatever you’ve entered in the
+                      Click "Send" to transmit whatever you've entered in the
                       Response text field. Use this to respond to a station.
                     </p>
                   </div>
@@ -1200,6 +1260,23 @@
 
     <!-- Results Table -->
     <h3 id="modeResultsHeader">Results</h3>
+    
+    <!-- Averages Header -->
+    <div id="averagesHeader" class="alert alert-info mb-3 p-0" style="display: none;">
+      <table class="table table-sm mb-0">
+        <tbody>
+          <tr class="text-center fw-bold">
+            <td style="width: 8.33%;">Total: <span id="totalContacts">0</span></td>
+            <td style="width: 16.67%;">Averages</td>
+            <td style="width: 16.67%;">Avg: <span id="avgWpm">-</span></td>
+            <td style="width: 16.67%;">Avg: <span id="avgAttempts">-</span></td>
+            <td style="width: 16.67%;">Avg: <span id="avgTime">-</span>s</td>
+            <td style="width: 25%;">Summary</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
     <table class="table table-hover mb-5" id="resultsTable">
       <thead>
         <tr>

@@ -496,5 +496,6 @@ export function stopAllAudio() {
   audioContext = new AudioContext();
   audioLockUntil = 0;
 
-  stopBackgroundStatic();
+  // Stop static immediately to avoid brief lockouts blocking quick restarts
+  stopBackgroundStatic(true);
 }

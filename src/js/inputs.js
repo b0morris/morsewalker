@@ -41,6 +41,7 @@ function getDOMInputs() {
     // convert volume to a float between 0 and 1
     yourVolume: parseFloat(document.getElementById('yourVolume').value) / 100,
     maxStations: parseInt(document.getElementById('maxStations').value, 10),
+    minStations: parseInt(document.getElementById('minStations').value, 10),
     minSpeed: parseInt(document.getElementById('minSpeed').value, 10),
     maxSpeed: parseInt(document.getElementById('maxSpeed').value, 10),
     minTone: parseInt(document.getElementById('minTone').value, 10),
@@ -50,6 +51,22 @@ function getDOMInputs() {
     maxVolume: parseFloat(document.getElementById('maxVolume').value) / 100,
     minWait: parseFloat(document.getElementById('minWait').value),
     maxWait: parseFloat(document.getElementById('maxWait').value),
+
+    // Contest mode configuration
+    contestConfig: {
+      allowedLetters: document.getElementById('allowedLetters')?.value.toUpperCase() || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      allowedNumbers: document.getElementById('allowedNumbers')?.value || '0123456789',
+      minCallsignLength: parseInt(document.getElementById('minCallsignLength')?.value || '3', 10),
+      maxCallsignLength: parseInt(document.getElementById('maxCallsignLength')?.value || '6', 10),
+      requirePrefix: document.getElementById('requirePrefix')?.checked || true,
+      allowedPrefixes: (document.getElementById('allowedPrefixes')?.value || 'K,W,N,AA,AB,AC,AD,AE,AF,AG,AH,AI,AJ,AK,AL')
+        .split(',')
+        .map(prefix => ({
+          value: prefix.trim().toUpperCase(),
+          weight: 1 // Default weight of 1 for all prefixes
+        })),
+      slashPercentage: parseInt(document.getElementById('slashPercentage')?.value || '30', 10),
+    },
 
     // Checkboxes & Radio
     usOnly: document.getElementById('usOnly')
@@ -121,19 +138,19 @@ function validateInputs(inputs) {
     isValid = false;
   }
 
-  if (inputs.minSpeed > inputs.maxSpeed) {
+  if (inputs.minVolume > inputs.maxVolume) {
     markFieldInvalid(
-      'minSpeed',
-      'Minimum Speed cannot be greater than Maximum Speed!'
+      'minVolume',
+      'Minimum Volume cannot be greater than Maximum Volume!'
     );
     openAccordionSection('collapseRespondingStationSettings');
     isValid = false;
   }
 
-  if (inputs.minVolume > inputs.maxVolume) {
+  if (inputs.minStations > inputs.maxStations) {
     markFieldInvalid(
-      'minVolume',
-      'Minimum Volume cannot be greater than Maximum Volume!'
+      'minStations',
+      'Minimum Stations cannot be greater than Maximum Stations!'
     );
     openAccordionSection('collapseRespondingStationSettings');
     isValid = false;
