@@ -173,6 +173,20 @@
             for="modeSst"
             >K1USN SST</label
           >
+
+          <input
+            type="radio"
+            class="btn-check"
+            name="mode"
+            id="modeTroubledLetters"
+            value="troubledLetters"
+            autocomplete="off"
+          />
+          <label
+            class="btn btn-outline-primary d-flex align-items-center justify-content-center"
+            for="modeTroubledLetters"
+            >Troubled Letters</label
+          >
         </div>
       </div>
     </div>
@@ -613,6 +627,36 @@
                                  value="30" min="0" max="100" step="1"
                                  placeholder="Percentage of callsigns with slash suffix">
                           <div class="form-text">Percentage of time a slash suffix (e.g., /QRP, /M) is added to callsigns</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Troubled Letters Mode Configuration -->
+                <div id="troubledLettersConfig" class="col-12 mt-3" style="display: none;">
+                  <div class="card border-primary">
+                    <div class="card-header">
+                      <h5 class="mb-0">Troubled Letters Configuration</h5>
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-12">
+                          <label for="troubledLetters" class="form-label">Letters to Practice</label>
+                          <input type="text" class="form-control" id="troubledLetters" 
+                                 value="HSBVDUI" 
+                                 placeholder="Enter letters to practice (e.g. HSBVDUI)">
+                          <div class="form-text">Random "words" will be generated using only these letters</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="troubledLettersMinLength" class="form-label">Minimum Word Length</label>
+                          <input type="number" class="form-control" id="troubledLettersMinLength" 
+                                 value="3" min="1" max="10">
+                        </div>
+                        <div class="col-12 col-md-6">
+                          <label for="troubledLettersMaxLength" class="form-label">Maximum Word Length</label>
+                          <input type="number" class="form-control" id="troubledLettersMaxLength" 
+                                 value="5" min="1" max="10">
                         </div>
                       </div>
                     </div>

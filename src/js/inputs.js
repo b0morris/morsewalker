@@ -54,8 +54,8 @@ function getDOMInputs() {
 
     // Contest mode configuration
     contestConfig: {
-      allowedLetters: document.getElementById('allowedLetters')?.value.toUpperCase() || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-      allowedNumbers: document.getElementById('allowedNumbers')?.value || '0123456789',
+      allowedLetters: (document.getElementById('allowedLetters')?.value.toUpperCase() || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ').replace(/[^A-Z]/g, '') || 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+      allowedNumbers: (document.getElementById('allowedNumbers')?.value || '0123456789').replace(/[^0-9]/g, '') || '0123456789',
       minCallsignLength: parseInt(document.getElementById('minCallsignLength')?.value || '3', 10),
       maxCallsignLength: parseInt(document.getElementById('maxCallsignLength')?.value || '6', 10),
       requirePrefix: document.getElementById('requirePrefix')?.checked || true,
@@ -66,6 +66,13 @@ function getDOMInputs() {
           weight: 1 // Default weight of 1 for all prefixes
         })),
       slashPercentage: parseInt(document.getElementById('slashPercentage')?.value || '30', 10),
+    },
+
+    // Troubled Letters mode configuration
+    troubledLettersConfig: {
+      letters: document.getElementById('troubledLetters')?.value.toUpperCase() || 'HSBVDUI',
+      minLength: parseInt(document.getElementById('troubledLettersMinLength')?.value || '3', 10),
+      maxLength: parseInt(document.getElementById('troubledLettersMaxLength')?.value || '5', 10),
     },
 
     // Checkboxes & Radio

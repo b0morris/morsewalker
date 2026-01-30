@@ -32,6 +32,7 @@ import {
 import { getYourStation, getCallingStation } from './stationGenerator.js';
 import { updateStaticIntensity } from './audio.js';
 import { modeLogicConfig, modeUIConfig } from './modes.js';
+import { recordMistakes, resetAdaptiveLearning } from './adaptiveLearning.js';
 
 // Make modeLogicConfig accessible globally for other modules
 window.modeLogicConfig = modeLogicConfig;
@@ -99,14 +100,21 @@ document.addEventListener('DOMContentLoaded', () => {
     radio.addEventListener('change', changeMode);
   });
 
-  // Show/hide contest configuration when contest mode is selected
+  // Show/hide mode-specific configuration panels when mode is selected
   modeRadios.forEach((radio) => {
     radio.addEventListener('change', () => {
       const contestConfig = document.getElementById('contestConfig');
+      const troubledLettersConfig = document.getElementById('troubledLettersConfig');
+      
+      // Hide all config panels first
+      contestConfig.style.display = 'none';
+      troubledLettersConfig.style.display = 'none';
+      
+      // Show the relevant panel
       if (radio.value === 'contest') {
         contestConfig.style.display = 'block';
-      } else {
-        contestConfig.style.display = 'none';
+      } else if (radio.value === 'troubledLetters') {
+        troubledLettersConfig.style.display = 'block';
       }
     });
   });
@@ -193,10 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
       sendButton.click();
     } else if (event.key === ' ') {
       event.preventDefault();
-      
+
       // Check if program is currently running
       const isRunning = currentStations.length > 0 || currentStation !== null;
-      
+
       if (isRunning) {
         // If running, stop the program
         stop();
@@ -248,6 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
     maxCallsignLength: 'maxCallsignLength',
     requirePrefix: 'requirePrefix',
     allowedPrefixes: 'allowedPrefixes',
+    // Troubled Letters configuration
+    troubledLetters: 'troubledLetters',
+    troubledLettersMinLength: 'troubledLettersMinLength',
+    troubledLettersMaxLength: 'troubledLettersMaxLength',
     // Responding station settings
     maxStations: 'maxStations',
     minStations: 'minStations',
@@ -320,10 +332,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load responding station values
   if (maxStations) {
-    maxStations.value = localStorage.getItem(keys.maxStations) || maxStations.value;
+    maxStations.value =
+      localStorage.getItem(keys.maxStations) || maxStations.value;
   }
   if (minStations) {
-    minStations.value = localStorage.getItem(keys.minStations) || minStations.value;
+    minStations.value =
+      localStorage.getItem(keys.minStations) || minStations.value;
   }
   if (minSpeed) {
     minSpeed.value = localStorage.getItem(keys.minSpeed) || minSpeed.value;
@@ -351,19 +365,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (enableFarnsworth) {
     const savedEnableFarnsworth = localStorage.getItem(keys.enableFarnsworth);
-    enableFarnsworth.checked = savedEnableFarnsworth !== null ? savedEnableFarnsworth === 'true' : enableFarnsworth.checked;
+    enableFarnsworth.checked =
+      savedEnableFarnsworth !== null
+        ? savedEnableFarnsworth === 'true'
+        : enableFarnsworth.checked;
   }
   if (farnsworthSpeed) {
-    farnsworthSpeed.value = localStorage.getItem(keys.farnsworthSpeed) || farnsworthSpeed.value;
+    farnsworthSpeed.value =
+      localStorage.getItem(keys.farnsworthSpeed) || farnsworthSpeed.value;
   }
   if (usOnly) {
     const savedUsOnly = localStorage.getItem(keys.usOnly);
-    usOnly.checked = savedUsOnly !== null ? savedUsOnly === 'true' : usOnly.checked;
+    usOnly.checked =
+      savedUsOnly !== null ? savedUsOnly === 'true' : usOnly.checked;
   }
   if (qrnRadios.length > 0) {
     const savedQrn = localStorage.getItem(keys.qrn);
     if (savedQrn) {
-      const savedQrnRadio = document.querySelector(`input[name="qrn"][value="${savedQrn}"]`);
+      const savedQrnRadio = document.querySelector(
+        `input[name="qrn"][value="${savedQrn}"]`
+      );
       if (savedQrnRadio) {
         savedQrnRadio.checked = true;
       }
@@ -374,11 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
     qsb.checked = savedQsb !== null ? savedQsb === 'true' : qsb.checked;
   }
   if (qsbPercentage) {
-    qsbPercentage.value = localStorage.getItem(keys.qsbPercentage) || qsbPercentage.value;
+    qsbPercentage.value =
+      localStorage.getItem(keys.qsbPercentage) || qsbPercentage.value;
   }
   if (enableCutNumbers) {
     const savedEnableCutNumbers = localStorage.getItem(keys.enableCutNumbers);
-    enableCutNumbers.checked = savedEnableCutNumbers !== null ? savedEnableCutNumbers === 'true' : enableCutNumbers.checked;
+    enableCutNumbers.checked =
+      savedEnableCutNumbers !== null
+        ? savedEnableCutNumbers === 'true'
+        : enableCutNumbers.checked;
   }
   if (cutT) {
     const savedCutT = localStorage.getItem(keys.cutT);
@@ -418,15 +443,24 @@ document.addEventListener('DOMContentLoaded', () => {
   if (enableFarnsworth && farnsworthSpeed) {
     farnsworthSpeed.disabled = !enableFarnsworth.checked;
   }
-  
+
   // Update QSB percentage input state
   if (qsb && qsbPercentage) {
     qsbPercentage.disabled = !qsb.checked;
   }
-  
+
   // Update cut number checkboxes state
   if (enableCutNumbers) {
-    const cutNumberIds = ['cutT', 'cutA', 'cutU', 'cutV', 'cutE', 'cutG', 'cutD', 'cutN'];
+    const cutNumberIds = [
+      'cutT',
+      'cutA',
+      'cutU',
+      'cutV',
+      'cutE',
+      'cutG',
+      'cutD',
+      'cutN',
+    ];
     cutNumberIds.forEach((id) => {
       const checkbox = document.getElementById(id);
       if (checkbox) {
@@ -442,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const format2x1 = document.getElementById('2x1');
   const format2x2 = document.getElementById('2x2');
   const format2x3 = document.getElementById('2x3');
-  
+
   // Load saved format preferences or use defaults
   const saved1x1 = localStorage.getItem(keys.format1x1);
   const saved1x2 = localStorage.getItem(keys.format1x2);
@@ -450,13 +484,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const saved2x1 = localStorage.getItem(keys.format2x1);
   const saved2x2 = localStorage.getItem(keys.format2x2);
   const saved2x3 = localStorage.getItem(keys.format2x3);
-  
-  format1x1.checked = saved1x1 !== null ? saved1x1 === 'true' : format1x1.checked;
-  format1x2.checked = saved1x2 !== null ? saved1x2 === 'true' : format1x2.checked;
-  format1x3.checked = saved1x3 !== null ? saved1x3 === 'true' : format1x3.checked;
-  format2x1.checked = saved2x1 !== null ? saved2x1 === 'true' : format2x1.checked;
-  format2x2.checked = saved2x2 !== null ? saved2x2 === 'true' : format2x2.checked;
-  format2x3.checked = saved2x3 !== null ? saved2x3 === 'true' : format2x3.checked;
+
+  format1x1.checked =
+    saved1x1 !== null ? saved1x1 === 'true' : format1x1.checked;
+  format1x2.checked =
+    saved1x2 !== null ? saved1x2 === 'true' : format1x2.checked;
+  format1x3.checked =
+    saved1x3 !== null ? saved1x3 === 'true' : format1x3.checked;
+  format2x1.checked =
+    saved2x1 !== null ? saved2x1 === 'true' : format2x1.checked;
+  format2x2.checked =
+    saved2x2 !== null ? saved2x2 === 'true' : format2x2.checked;
+  format2x3.checked =
+    saved2x3 !== null ? saved2x3 === 'true' : format2x3.checked;
 
   // Load contest configuration
   const slashPercentage = document.getElementById('slashPercentage');
@@ -466,28 +506,55 @@ document.addEventListener('DOMContentLoaded', () => {
   const maxCallsignLength = document.getElementById('maxCallsignLength');
   const requirePrefix = document.getElementById('requirePrefix');
   const allowedPrefixes = document.getElementById('allowedPrefixes');
-  
+
   if (slashPercentage) {
-    slashPercentage.value = localStorage.getItem(keys.slashPercentage) || slashPercentage.value;
+    slashPercentage.value =
+      localStorage.getItem(keys.slashPercentage) || slashPercentage.value;
   }
   if (allowedLetters) {
-    allowedLetters.value = localStorage.getItem(keys.allowedLetters) || allowedLetters.value;
+    allowedLetters.value =
+      localStorage.getItem(keys.allowedLetters) || allowedLetters.value;
   }
   if (allowedNumbers) {
-    allowedNumbers.value = localStorage.getItem(keys.allowedNumbers) || allowedNumbers.value;
+    allowedNumbers.value =
+      localStorage.getItem(keys.allowedNumbers) || allowedNumbers.value;
   }
   if (minCallsignLength) {
-    minCallsignLength.value = localStorage.getItem(keys.minCallsignLength) || minCallsignLength.value;
+    minCallsignLength.value =
+      localStorage.getItem(keys.minCallsignLength) || minCallsignLength.value;
   }
   if (maxCallsignLength) {
-    maxCallsignLength.value = localStorage.getItem(keys.maxCallsignLength) || maxCallsignLength.value;
+    maxCallsignLength.value =
+      localStorage.getItem(keys.maxCallsignLength) || maxCallsignLength.value;
   }
   if (requirePrefix) {
     const savedRequirePrefix = localStorage.getItem(keys.requirePrefix);
-    requirePrefix.checked = savedRequirePrefix !== null ? savedRequirePrefix === 'true' : requirePrefix.checked;
+    requirePrefix.checked =
+      savedRequirePrefix !== null
+        ? savedRequirePrefix === 'true'
+        : requirePrefix.checked;
   }
   if (allowedPrefixes) {
-    allowedPrefixes.value = localStorage.getItem(keys.allowedPrefixes) || allowedPrefixes.value;
+    allowedPrefixes.value =
+      localStorage.getItem(keys.allowedPrefixes) || allowedPrefixes.value;
+  }
+
+  // Load troubled letters configuration
+  const troubledLettersInput = document.getElementById('troubledLetters');
+  const troubledLettersMinLength = document.getElementById('troubledLettersMinLength');
+  const troubledLettersMaxLength = document.getElementById('troubledLettersMaxLength');
+
+  if (troubledLettersInput) {
+    troubledLettersInput.value =
+      localStorage.getItem(keys.troubledLetters) || troubledLettersInput.value;
+  }
+  if (troubledLettersMinLength) {
+    troubledLettersMinLength.value =
+      localStorage.getItem(keys.troubledLettersMinLength) || troubledLettersMinLength.value;
+  }
+  if (troubledLettersMaxLength) {
+    troubledLettersMaxLength.value =
+      localStorage.getItem(keys.troubledLettersMaxLength) || troubledLettersMaxLength.value;
   }
 
   // Save user settings to localStorage on input change
@@ -697,6 +764,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Save troubled letters configuration to localStorage on change
+  if (troubledLettersInput) {
+    troubledLettersInput.addEventListener('input', () => {
+      localStorage.setItem(keys.troubledLetters, troubledLettersInput.value);
+    });
+  }
+  if (troubledLettersMinLength) {
+    troubledLettersMinLength.addEventListener('input', () => {
+      localStorage.setItem(keys.troubledLettersMinLength, troubledLettersMinLength.value);
+    });
+  }
+  if (troubledLettersMaxLength) {
+    troubledLettersMaxLength.addEventListener('input', () => {
+      localStorage.setItem(keys.troubledLettersMaxLength, troubledLettersMaxLength.value);
+    });
+  }
+
   // Handle QRN intensity changes
   const qrnRadioButtons = document.querySelectorAll('input[name="qrn"]');
   qrnRadioButtons.forEach((radio) => {
@@ -716,12 +800,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // Set currentMode to the saved or default mode
   currentMode = savedMode;
 
-  // Set initial visibility of contest configuration div based on saved mode
+  // Set initial visibility of mode configuration divs based on saved mode
   const contestConfig = document.getElementById('contestConfig');
+  const troubledLettersConfig = document.getElementById('troubledLettersConfig');
+  
+  contestConfig.style.display = 'none';
+  troubledLettersConfig.style.display = 'none';
+  
   if (savedMode === 'contest') {
     contestConfig.style.display = 'block';
-  } else {
-    contestConfig.style.display = 'none';
+  } else if (savedMode === 'troubledLetters') {
+    troubledLettersConfig.style.display = 'block';
   }
 
   // Update basic stats on page load
@@ -825,6 +914,9 @@ function resetGameState() {
   currentStationStartTime = null;
   totalContacts = 0;
 
+  // Reset adaptive learning for a fresh session
+  resetAdaptiveLearning();
+
   updateActiveStations(0);
   clearTable('resultsTable');
   document.getElementById('responseField').value = '';
@@ -865,7 +957,11 @@ function cq() {
   const modeConfig = getModeConfig();
   const cqButton = document.getElementById('cqButton');
 
-  if (currentMode !== 'contest' && !modeConfig.showTuStep && currentStation !== null) {
+  if (
+    currentMode !== 'contest' &&
+    !modeConfig.showTuStep &&
+    currentStation !== null
+  ) {
     return;
   }
 
@@ -888,9 +984,13 @@ function cq() {
   );
   updateAudioLock(yourResponseTimer);
 
-  if (modeConfig.showTuStep || currentMode === 'contest') {
+  if (currentMode === 'troubledLetters') {
+    // Troubled Letters mode: Just get one station (a random word)
+    cqButton.disabled = true;
+    nextTroubledLettersWord(yourResponseTimer);
+  } else if (modeConfig.showTuStep || currentMode === 'contest') {
     // Contest-like modes: CQ adds more stations
-    
+
     // Ensure we have at least inputs.minStations if the mode supports it
     if (currentStations.length === 0 && inputs.minStations > 0) {
       // Add exactly inputs.minStations for initial call
@@ -905,7 +1005,7 @@ function cq() {
       // Normal behavior for subsequent calls
       addStations(currentStations, inputs);
     }
-    
+
     respondWithAllStations(currentStations, yourResponseTimer);
     lastRespondingStations = currentStations;
   } else {
@@ -941,6 +1041,92 @@ function send() {
   }
 
   console.log(`--> Sending "${responseFieldText}"`);
+
+  if (currentMode === 'troubledLetters') {
+    // Troubled Letters mode - simple word matching
+    if (currentStation === null) return;
+
+    let yourResponseTimer = yourStation.player.playSentence(responseFieldText);
+    updateAudioLock(yourResponseTimer);
+
+    // Handling repeats
+    if (
+      responseFieldText === '?' ||
+      responseFieldText === 'AGN' ||
+      responseFieldText === 'AGN?'
+    ) {
+      let theirResponseTimer = currentStation.player.playSentence(
+        currentStation.callsign,
+        yourResponseTimer + Math.random() + 0.25
+      );
+      updateAudioLock(theirResponseTimer);
+      currentStationAttempts++;
+      return;
+    }
+
+    // Handle QRS
+    if (responseFieldText === 'QRS') {
+      if (currentStation.enableFarnsworth) {
+        currentStation.farnsworthSpeed = Math.max(
+          5,
+          currentStation.farnsworthSpeed - farnsworthLowerBy
+        );
+      } else {
+        currentStation.enableFarnsworth = true;
+        currentStation.farnsworthSpeed = currentStation.wpm - farnsworthLowerBy;
+      }
+      currentStation.player = createMorsePlayer(currentStation);
+      let theirResponseTimer = currentStation.player.playSentence(
+        currentStation.callsign,
+        yourResponseTimer + Math.random() + 0.25
+      );
+      updateAudioLock(theirResponseTimer);
+      currentStationAttempts++;
+      return;
+    }
+
+    // Check for exact match (troubled letters uses exact matching, not partial)
+    if (responseFieldText === currentStation.callsign) {
+      currentStationAttempts++;
+
+      // Perfect match - play confirmation and move to next word
+      let theirResponseTimer = currentStation.player.playSentence(
+        'R',
+        yourResponseTimer + 0.5
+      );
+      updateAudioLock(theirResponseTimer);
+
+      totalContacts++;
+      const wpmString =
+        `${currentStation.wpm}` +
+        (currentStation.enableFarnsworth
+          ? ` / ${currentStation.farnsworthSpeed}`
+          : '');
+      addTableRow(
+        'resultsTable',
+        totalContacts,
+        currentStation.callsign,
+        wpmString,
+        currentStationAttempts,
+        audioContext.currentTime - currentStationStartTime,
+        ''
+      );
+
+      nextTroubledLettersWord(theirResponseTimer);
+      return;
+    }
+
+    // Wrong answer - repeat the word
+    currentStationAttempts++;
+    // Record mistakes for adaptive learning
+    recordMistakes(currentStation.callsign, responseFieldText);
+    let theirResponseTimer = currentStation.player.playSentence(
+      currentStation.callsign,
+      yourResponseTimer + Math.random() + 0.25
+    );
+    updateAudioLock(theirResponseTimer);
+    return;
+  }
 
   if (currentMode === 'contest') {
     // Contest mode - simplified behavior similar to single mode but with multiple stations
@@ -1005,7 +1191,7 @@ function send() {
           yourResponseTimer + 0.5
         );
         updateAudioLock(theirResponseTimer);
-        
+
         // Log the contact
         totalContacts++;
         const wpmString =
@@ -1013,7 +1199,7 @@ function send() {
           (currentStation.enableFarnsworth
             ? ` / ${currentStation.farnsworthSpeed}`
             : '');
-        
+
         addTableRow(
           'resultsTable',
           totalContacts,
@@ -1023,16 +1209,18 @@ function send() {
           audioContext.currentTime - currentStationStartTime,
           '' // No additional info in contest mode
         );
-        
+
         // Remove the worked station and reset counters
         currentStations.splice(matchIndex, 1);
         currentStationAttempts = 0;
         updateActiveStations(currentStations.length);
-        
+
         // Ensure we have at least inputs.minStations active stations
         if (currentStations.length < inputs.minStations) {
           const stationsNeeded = inputs.minStations - currentStations.length;
-          console.log(`+ Adding ${stationsNeeded} stations to maintain minimum...`);
+          console.log(
+            `+ Adding ${stationsNeeded} stations to maintain minimum...`
+          );
           for (let i = 0; i < stationsNeeded; i++) {
             let callingStation = getCallingStation();
             printStation(callingStation);
@@ -1044,7 +1232,7 @@ function send() {
         else if (Math.random() < 0.4) {
           addStations(currentStations, inputs);
         }
-        
+
         // Respond with all remaining stations
         respondWithAllStations(currentStations, theirResponseTimer);
         lastRespondingStations = currentStations;
@@ -1060,6 +1248,10 @@ function send() {
       let partialMatchStations = currentStations.filter(
         (_, index) => results[index] === 'partial'
       );
+      // Record mistakes for adaptive learning - compare user input against partial matches
+      partialMatchStations.forEach((stn) => {
+        recordMistakes(stn.callsign, responseFieldText.replace('?', ''));
+      });
       respondWithAllStations(partialMatchStations, yourResponseTimer);
       lastRespondingStations = partialMatchStations;
       currentStationAttempts++;
@@ -1068,6 +1260,14 @@ function send() {
 
     // No matches at all
     if (currentMode === 'contest') {
+      // Record mistakes for adaptive learning - compare against all active stations
+      // Use the station with the closest match (first one for simplicity)
+      if (currentStations.length > 0) {
+        recordMistakes(
+          currentStations[0].callsign,
+          responseFieldText.replace('?', '')
+        );
+      }
       // In contest mode, stations always respond even with no match
       respondWithAllStations(currentStations, yourResponseTimer);
       lastRespondingStations = currentStations;
@@ -1560,6 +1760,39 @@ function nextSingleStation(responseStartTime) {
 }
 
 /**
+ * Fetches and sets up a new word in troubled letters mode after a completed round.
+ *
+ * Creates a new station object representing a random word, initializes it with a
+ * Morse player, and plays the word. Updates the game state and refocuses on the
+ * response field.
+ *
+ * @param {number} responseStartTime - The time at which the next word playback begins.
+ */
+function nextTroubledLettersWord(responseStartTime) {
+  const responseField = document.getElementById('responseField');
+  const cqButton = document.getElementById('cqButton');
+
+  let callingStation = getCallingStation();
+  console.log(`Troubled Letters word: ${callingStation.callsign}`);
+  currentStation = callingStation;
+  currentStationAttempts = 0;
+  updateActiveStations(1);
+
+  callingStation.player = createMorsePlayer(callingStation);
+  let theirResponseTimer = callingStation.player.playSentence(
+    callingStation.callsign,
+    responseStartTime + Math.random() + 0.5
+  );
+  updateAudioLock(theirResponseTimer);
+
+  currentStationStartTime = theirResponseTimer;
+  responseField.value = '';
+  responseField.focus();
+
+  cqButton.disabled = true;
+}
+
+/**
  * Stops all audio playback and resets run state so space toggles reliably.
  *
  * Clears any active station(s) across all modes, re-enables the CQ button,
@@ -1597,6 +1830,9 @@ function reset() {
   currentStations = [];
   activeStationIndex = null;
   readyForTU = false;
+
+  // Reset adaptive learning for a fresh session
+  resetAdaptiveLearning();
 
   updateActiveStations(0);
   updateAudioLock(0);

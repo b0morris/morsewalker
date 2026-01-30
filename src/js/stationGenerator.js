@@ -262,17 +262,60 @@ export function getCallingStation() {
   // Determine if it's a US station (used in both contest and non-contest modes)
   let isUS = inputs.usOnly ? true : Math.random() < 0.4;
 
+  // If in troubled letters mode, generate a random word from the configured letters
+  if (inputs.mode === 'troubledLetters') {
+    const config = inputs.troubledLettersConfig;
+    const letters = config.letters || 'HSBVDUI';
+    const minLen = config.minLength || 3;
+    const maxLen = config.maxLength || 5;
+    
+    // Generate a random word length between min and max
+    const wordLength = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
+    
+    // Generate the word from the allowed letters
+    let word = '';
+    for (let i = 0; i < wordLength; i++) {
+      const randomIndex = Math.floor(Math.random() * letters.length);
+      word += letters[randomIndex];
+    }
+
+    return {
+      callsign: word,
+      wpm:
+        Math.floor(Math.random() * (inputs.maxSpeed - inputs.minSpeed + 1)) +
+        inputs.minSpeed,
+      enableFarnsworth: inputs.enableFarnsworth,
+      farnsworthSpeed: inputs.farnsworthSpeed || null,
+      volume:
+        Math.random() * (inputs.maxVolume - inputs.minVolume) +
+        inputs.minVolume,
+      frequency: Math.floor(
+        Math.random() * (inputs.maxTone - inputs.minTone) + inputs.minTone
+      ),
+      name: '',
+      state: '',
+      serialNumber: '',
+      cwopsNumber: 0,
+      player: null,
+      qsb: inputs.qsb ? Math.random() < inputs.qsbPercentage / 100 : false,
+      qsbFrequency: Math.random() * 0.45 + 0.05,
+      qsbDepth: Math.random() * 0.4 + 0.6,
+    };
+  }
+
   // If in contest mode, use contest configuration
   if (inputs.mode === 'contest') {
     const config = inputs.contestConfig;
     let callsign = '';
-    
+
     if (config.requirePrefix) {
       if (isUS) {
         // Use weighted random selection for US prefixes
         const prefix = weightedRandomElement(US_CALLSIGN_PREFIXES_WEIGHTED);
         if (!prefix) {
-          console.error('No prefix selected from weighted array, using fallback');
+          console.error(
+            'No prefix selected from weighted array, using fallback'
+          );
           callsign += 'K'; // Fallback to K prefix
         } else {
           callsign += prefix;
@@ -281,14 +324,16 @@ export function getCallingStation() {
         // Use non-US prefixes
         const prefix = randomElement(NON_US_CALLSIGN_PREFIXES);
         if (!prefix) {
-          console.error('No prefix selected from non-US prefixes, using fallback');
+          console.error(
+            'No prefix selected from non-US prefixes, using fallback'
+          );
           callsign += 'VE'; // Fallback to VE prefix
         } else {
           callsign += prefix;
         }
       }
     }
-    
+
     // Add a random number
     const number = randomElement(config.allowedNumbers);
     if (!number) {
@@ -297,7 +342,7 @@ export function getCallingStation() {
     } else {
       callsign += number;
     }
-    
+
     // Get the format to determine suffix length
     const format = randomElement(inputs.formats);
     if (!format) {
@@ -316,7 +361,7 @@ export function getCallingStation() {
         }
       }
     }
-    
+
     // Add a slash with 1-2 characters based on configured percentage
     if (Math.random() < config.slashPercentage / 100) {
       callsign += '/';
@@ -331,7 +376,7 @@ export function getCallingStation() {
         }
       }
     }
-    
+
     return {
       callsign,
       wpm:
@@ -340,7 +385,8 @@ export function getCallingStation() {
       enableFarnsworth: inputs.enableFarnsworth,
       farnsworthSpeed: inputs.farnsworthSpeed || null,
       volume:
-        Math.random() * (inputs.maxVolume - inputs.minVolume) + inputs.minVolume,
+        Math.random() * (inputs.maxVolume - inputs.minVolume) +
+        inputs.minVolume,
       frequency: Math.floor(
         Math.random() * (inputs.maxTone - inputs.minTone) + inputs.minTone
       ),
@@ -505,7 +551,11 @@ function randomElement(array) {
  * @returns {*} A random element's `value` from the array, based on the weights.
  */
 function weightedRandomElement(weightedArray) {
-  if (!weightedArray || !Array.isArray(weightedArray) || weightedArray.length === 0) {
+  if (
+    !weightedArray ||
+    !Array.isArray(weightedArray) ||
+    weightedArray.length === 0
+  ) {
     console.error('Invalid weighted array:', weightedArray);
     return null;
   }

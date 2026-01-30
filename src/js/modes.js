@@ -114,6 +114,16 @@ export const modeUIConfig = {
     extraColumnHeader: 'Additional Info',
     resultsHeader: 'CWT Mode Results',
   },
+  troubledLetters: {
+    showTuButton: false,
+    showInfoField: false,
+    infoFieldPlaceholder: '',
+    showInfoField2: false,
+    infoField2Placeholder: '',
+    tableExtraColumn: false,
+    extraColumnHeader: '',
+    resultsHeader: 'Troubled Letters Mode Results',
+  },
 };
 
 /**
@@ -205,5 +215,18 @@ export const modeLogicConfig = {
     modeName: 'CWT',
     extraInfoFieldKey: 'name',
     extraInfoFieldKey2: 'cwopsNumber',
+  },
+  troubledLetters: {
+    cqMessage: (yourStation, theirStation, arbitrary) => ``,
+    yourExchange: (yourStation, theirStation, arbitrary) => ``,
+    theirExchange: (yourStation, theirStation, arbitrary) => `R`,
+    yourSignoff: (yourStation, theirStation, arbitrary) => ``,
+    theirSignoff: null,
+    requiresInfoField: false,
+    requiresInfoField2: false,
+    showTuStep: false,
+    modeName: 'Troubled Letters',
+    extraInfoFieldKey: null,
+    extraInfoFieldKey2: null,
   },
 };
